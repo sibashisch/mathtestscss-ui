@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Test Centre</title>
+		<meta charset="utf-8">
+  		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+		<script src="https://unpkg.com/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js"></script>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" />
+		<link href="https://unpkg.com/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker3.min.css" rel="stylesheet" />
+		
+		<script src="resources/main.js" type="text/javascript"></script>
+		<script src="resources/homeButtonHandles.js" type="text/javascript"></script>
+		
+		<script>
+			$(document).ready(function() {
+				$('#menu-modal').modal();
+				$('#username-span').html(_getUserData(USER_DISP_KEY));
+
+				let userType = _getUserData(USER_TYPE_KEY);
+				if (userType === '1' || userType === '2') {
+					$('.admin-only').show();
+				}
+				if (userType === '1') {
+					$('.master-only').show();
+				}
+				$('.init-hidden').hide();
+
+				$('#createexam-date-inp').datepicker({
+					format: "dd-mm-yyyy",
+					todayBtn: true,
+				    clearBtn: true,
+				    todayBtn: "linked",
+				    autoclose: true
+				});
+
+				_createTimePicker ('createexam-hour-inp', 'hour');
+				_createTimePicker ('createexam-min-inp', 'min');
+
+				$('#createexam-date-inp').tooltip();
+				$('#createexam-hour-inp').tooltip();
+				$('#createexam-min-inp').tooltip();
+				$('#createques-optioncount-inp').tooltip();
+				$('#createques-answer-inp').tooltip();
+
+				_assignHandlers(userType);
+
+			});
+		</script>
+
+		<style>
+			#username-span {
+				font-weight: bold;
+			}
+			#main-div button {
+				text-align: justify-all;
+			}
+			.admin-only, .master-only {
+				display: none;
+			}
+			.btn-lnk {
+				font-weight: bold;
+			}
+			#main-div input, #main-div button, #main-div select, #main-div textarea {
+				margin-top: 5px;
+			}
+			.message-div {
+				margin-top: 15px;
+				color: red;
+			}
+			.success-div {
+				margin-top: 15px;
+				color: green;
+			}
+			#createexam-date-inp, #createexam-hour-inp, #createexam-min-inp {
+				width: 30%;
+				margin-right: 10px;
+			}
+		</style>
+	</head>
+
+	<body>
+		<!-- Admin Menu Modal Starts -->
+		<div class="modal" id="menu-modal" data-backdrop="static" data-keyboard="false">
+  			<div class="modal-dialog">
+    			<div class="modal-content">
+					
+					<div class="card col-sm-12">
+						<div class="card-body">
+					    	<h5 class="card-title">Test Centre</h5><br />
+					    	<h6 class="card-subtitle mb-2 text-muted"><span id="username-span"></span></h6>
+					    	<div class="card-text">
+					    		<div id="main-div">
+					    			
+					    			<hr class="admin-only" /> 
+					    			<button type="button" class="btn btn-lnk admin-only" id="createuser-btn">Create User</button>
+					    			
+					    			<input type="text" class="form-control init-hidden" id="createuser-username-inp" placeholder="User Name" />
+					    			<input type="password" class="form-control init-hidden" id="createuser-password-inp" placeholder="Password" />
+					    			<select class="form-control init-hidden" id="createuser-type-sel">
+					    				<option value="3">Student</option>
+					    				<option value="2">Admin</option>
+					    				<option value="1">Master</option>
+					    			</select>
+					    			<button type="button" class="btn btn-primary init-hidden" id="createuser-go-btn">Create &rarr;</button>
+					    			<div class="message-div init-hidden" id="createuser-message-div"></div>
+					    			<div class="success-div init-hidden" id="createuser-success-div"></div>
+
+
+					    			<hr class="admin-only" /> 
+					    			<button type="button" class="btn btn-lnk admin-only" id="topic-btn">New Topic</button>
+
+					    			<input type="text" class="form-control init-hidden" id="topic-topicname-inp" placeholder="Topic Name" />
+					    			<button type="button" class="btn btn-primary init-hidden" id="topic-go-btn">Create &rarr;</button>
+					    			<div class="message-div init-hidden" id="topic-message-div"></div>
+					    			<div class="success-div init-hidden" id="topic-success-div"></div>
+
+
+					    			<hr class="admin-only" /> 
+					    			<button type="button" class="btn btn-lnk admin-only" id="createques-btn">New Question</button>
+
+									<input type="text" class="form-control init-hidden" id="createques-topic-inp" placeholder="Topic" />	
+					    			<input type="text" class="form-control init-hidden" id="createques-quesdesc-inp" placeholder="Description" />
+					    			<input type="text" class="form-control init-hidden" id="createques-image-inp" placeholder="Link to the image" />
+					    			<input type="number" class="form-control init-hidden" id="createques-optioncount-inp" placeholder="Option Count" title="Enter 0 for non-MCQs" />
+					    			<input type="text" class="form-control init-hidden" id="createques-answer-inp" placeholder="Correct Answer" title="For MCQs write the correct option here" />
+					    			<button type="button" class="btn btn-primary init-hidden" id="createques-go-btn">Create &rarr;</button>
+					    			<div class="message-div init-hidden" id="createques-message-div"></div>
+					    			<div class="success-div init-hidden" id="createques-success-div"></div>
+
+
+					    			<hr class="admin-only" /> 
+					    			<button type="button" class="btn btn-lnk admin-only" id="createexam-btn">Create Exam</button>
+
+					    			<input type="text" class="form-control init-hidden" id="createexam-examname-inp" placeholder="Exam Name" />
+					    			<div class="row container">
+					    				<input type="text" class="form-control form-inline init-hidden" id="createexam-date-inp" readonly placeholder="Start Date" title="Exam Start Date" />
+					    				<select class="form-control form-inline init-hidden" id="createexam-hour-inp" title="Hour"></select> 
+					    				<select class="form-control form-inline init-hidden" id="createexam-min-inp" title="Minute"></select>
+					    			</div>
+					    			<textarea class="form-control init-hidden" id="createexam-ins-inp" placeholder="Instructions"></textarea>
+					    			<input type="number" class="form-control init-hidden" id="createexam-duration-inp" placeholder="Exam Duration in Minutes" />
+					    			<button type="button" class="btn btn-primary init-hidden" id="createexam-go-btn">Create &rarr;</button>
+					    			<div class="message-div init-hidden" id="createexam-message-div"></div>
+					    			<div class="success-div init-hidden" id="createexam-success-div"></div>
+
+
+					    			<hr class="admin-only" /> 
+					    			<button type="button" class="btn btn-lnk admin-only" id="examques-btn">Add Questions to Exam</button>
+
+					    			<input type="text" class="form-control init-hidden" id="examques-examname-inp" placeholder="Exam Name" />
+					    			<input type="text" class="form-control init-hidden" id="examques-folder-inp" placeholder="Google Drive Folder Id" />
+					    			<button type="button" class="btn btn-primary init-hidden" id="examques-go-btn">Go &rarr;</button>
+					    			<div class="message-div init-hidden" id="examques-message-div"></div>
+					    			<div class="success-div init-hidden" id="examques-success-div"></div>
+
+					    			<hr class="admin-only" /> 
+					    			<button type="button" class="btn btn-lnk admin-only" id="examstudent-btn">Add User to Exam</button>
+
+					    			<input type="text" class="form-control init-hidden" id="examstudent-examname-inp" placeholder="Exam Name" />
+					    			<button type="button" class="btn btn-primary init-hidden" id="examstudent-go-btn">Go &rarr;</button>
+					    			<div class="message-div init-hidden" id="examstudent-message-div"></div>
+					    			<div class="success-div init-hidden" id="examstudent-success-div"></div>
+
+					    			<hr /> <button type="button" class="btn btn-lnk" id="test-btn">Take Test</button>
+					    			<hr /> <button type="button" class="btn btn-lnk" id="logout-btn">Logout</button>
+					    		</div>
+					    	</div>
+						</div>
+					</div>
+					
+				</div>
+			</div>
+		</div>
+		<!-- admin Manu Modal Ends -->
+	</body>
+
+</html>

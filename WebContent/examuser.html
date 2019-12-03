@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Test Centre</title>
+		<meta charset="utf-8">
+  		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+		<script src="https://unpkg.com/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js"></script>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" />
+		<link href="https://unpkg.com/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker3.min.css" rel="stylesheet" />
+		
+		<script src="resources/main.js" type="text/javascript"></script>
+		
+		<script>
+			let allUsers;
+			let addedUsers;
+			let examName;
+
+			let _refreshAdded = function () {
+				$('#added-user-div').html('');
+				addedUsers.forEach (user => {
+					let elem = $('<p></p>');
+					elem.addClass('single-added-user-p');
+
+					let closeElem = $('<span></span>');
+					closeElem.attr('data-user', user);
+					closeElem.html('&cross;');
+					closeElem.addClass('single-added-user-cross-span');
+					closeElem.click(function() {
+						let index = addedUsers.indexOf(user);
+						if (index > -1) {
+							addedUsers.splice(index, 1);
+							_refreshAdded(addedUsers);
+						}
+					});
+					elem.append(closeElem);
+
+					let nameElem = $('<span></span>');
+					nameElem.html('&nbsp;&nbsp;&nbsp;&nbsp;' + user);
+					elem.append(nameElem);
+
+
+					$('#added-user-div').append(elem);
+				});
+			}
+
+			$(document).ready(function() {
+				$('#add-user-modal').modal();
+
+				$('#back-btn').click(function() {
+					window.location.href = USER_HOME;
+				});
+
+				try {
+					allUsers = JSON.parse(_getUserData(PARAM_USER_LIST));
+				  	addedUsers = JSON.parse(_getUserData(PARAM_ADDED_USERS));
+					examName = _getUserData(PARAM_EXAM_NAME);
+				} catch (err) {
+					_logError(err);
+					allUsers = null;
+					addedUsers = null;
+					examName = null;
+				}
+
+				if (allUsers === null || addedUsers === null || examName === null) {
+					$('#message-div').html('Could Not Retrieve Data. Please Try Again later.');
+				} else {
+					$('#examname-inp').val(examName);
+					$("#username-inp").typeahead({ source: allUsers, autoSelect: true, showHintOnFocus: true });
+					addedUsers.sort();
+					_refreshAdded(addedUsers);
+
+					$('#add-btn').click(function() {
+						$('#message-div').html('');
+						let userToAdd = $('#username-inp').val();
+						if (userToAdd === '') {
+							$('#message-div').html('Search for a User to Add');
+						} else {
+							if (addedUsers.indexOf(userToAdd) > -1) {
+								$('#message-div').html('Already Added');	
+							} else {
+								addedUsers.push(userToAdd);
+								addedUsers.sort();
+								_refreshAdded();
+							}
+							$('#username-inp').val('');
+						}
+					});
+				}
+
+				$('#submit-btn').click(function() {
+					if (addedUsers.length < 1) {
+						$('#message-div').html('Add Atleast One Student');	
+					} else {
+						let userNamesToAdd = [];
+						addedUsers.forEach(user => userNamesToAdd.push(user.split(":")[1].trim()));
+						let data = {examName: examName, userNames: userNamesToAdd.join(':')};
+						_ajaxCall ('add-user-modal', '/exam/user/associate', 'post', data, 'json', 'message-div', function (resp) {
+							$('#message-div').html('');
+							$('#success-div').html(resp.totcount + ' User(s) Found. ' + resp.addedcount + ' User(s) Added. ' + resp.deletecount + ' User(s) Deleted.');
+						});
+					}
+				});
+
+			});
+		</script>
+
+		<style>
+			#main-div input, #main-div button {
+				margin-bottom: 15px;
+			}
+			#message-div {
+				margin-top: 15px;
+				margin-bottom: 15px;
+				color: red;
+			}
+			#success-div {
+				margin-top: 15px;
+				margin-bottom: 15px;
+				color: green;
+			}
+			.single-added-user-p {
+				font-weight: bold;
+				border: 1px solid lightgray;
+				border-radius: 5px;	
+				padding: 5px;
+			}
+			.single-added-user-cross-span {
+				cursor: pointer;
+				color: red;
+				font-weight: bold;
+			}
+		</style>
+	</head>
+
+	<body>
+		<!-- Add user Modal Starts -->
+		<div class="modal" id="add-user-modal" data-backdrop="static" data-keyboard="false">
+  			<div class="modal-dialog">
+    			<div class="modal-content">
+					
+					<div class="card col-sm-12">
+						<div class="card-body">
+					    	<h5 class="card-title">Test Centre</h5><br />
+					    	<h6 class="card-subtitle mb-2 text-muted">Add Users</h6>
+					    	<div class="card-text">
+					    		<div id="main-div">
+					    			<input type="text" id="examname-inp" class="form-control" placeholder="Exam Name" readonly />
+					    			<input type="text" id="username-inp" class="form-control" placeholder="Search user" />
+					    			<button type="button" class="btn btn-primary" id="add-btn">Add &rarr;</button>
+					    		</div>
+					    		<div id="message-div"></div>
+					    		<div id="success-div"></div>
+					    		<div id="added-user-div"></div>
+					    		<button type="button" class="btn btn-lnk" id="back-btn">&larr; Home</button>
+					    		<button type="button" class="btn btn-primary" id="submit-btn">Submit &rarr;</button>
+					    	</div>
+						</div>
+					</div>
+					
+				</div>
+			</div>
+		</div>
+		<!-- Add user Modal Ends -->
+	</body>
+</html>
