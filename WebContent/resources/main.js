@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = '/testcentre';
 
 const USER_NAME_KEY = 'mathtest-username';
 const USER_AUTH_KEY = 'mathtest-usersuth';
