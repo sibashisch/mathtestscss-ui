@@ -22,13 +22,18 @@
 				$('#username-span').html('(' + 'Sibashis Chatterjee' + ')'); // CHANGE
 				$('#exam-modal').modal();
 
-				let examIdToGet = window.location.href.split('?')[1].split('=')[1];
-				_ajaxCall ('exam-modal', '/exam/get/'+examIdToGet, 'get', {withpics:'Y'}, 'json', 'message-div', function (response) {
-					const domContainer = document.querySelector('#main-div');
-					response.withpic = "Y";
-					response.examid = examIdToGet;
-					ReactDOM.render(e(QuestionBox, response), domContainer);
-				});
+				try {
+					let examIdToGet = window.location.href.split('?')[1].split('=')[1];
+					_ajaxCall ('exam-modal', '/exam/get/'+examIdToGet, 'get', {withpics:'Y'}, 'json', 'message-div', function (response) {
+						const domContainer = document.querySelector('#main-div');
+						response.withpic = "Y";
+						response.examid = examIdToGet;
+						ReactDOM.render(e(QuestionBox, response), domContainer);
+					});
+				} catch (err) {
+					_logError(err);
+					$('#message-div').html('Please Follow Proper Channel, Don\'t Enter URL Directly.');
+				}
 			});
 		</script>
 

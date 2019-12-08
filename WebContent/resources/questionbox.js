@@ -9,6 +9,7 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 var e = React.createElement;
+var timerWarned = false;
 
 var QuestionBox = function (_React$Component) {
   _inherits(QuestionBox, _React$Component);
@@ -17,6 +18,24 @@ var QuestionBox = function (_React$Component) {
     _classCallCheck(this, QuestionBox);
 
     var _this = _possibleConstructorReturn(this, (QuestionBox.__proto__ || Object.getPrototypeOf(QuestionBox)).call(this, props));
+
+    _this._tryToRetrieve = function () {
+      try {
+        var storedData = JSON.parse(localStorage.getItem(EXAM_SUMP_KEY + ':' + this.state.examid));
+        if (storedData && storedData.USERNAME === _getUserData(USER_NAME_KEY) && storedData.EXAM === this.state.examid) {
+          this.setState(function (state) {
+            return {
+              started: 'Y',
+              startTime: storedData.STARTTIME,
+              answers: JSON.parse(storedData.ANSWERS),
+              time: storedData.TIMELEFT
+            };
+          });
+        }
+      } catch (err) {
+        _logError(err);
+      }
+    };
 
     _this._crateExamDump = function () {
       var examDataDump = {};
@@ -117,6 +136,17 @@ var QuestionBox = function (_React$Component) {
       this._saveState();
     };
 
+    _this._unMarkAnswer = function (quesId) {
+      var modAnswers = this.state.answers;
+      delete modAnswers[quesId];
+      this.setState(function (state) {
+        return {
+          answers: modAnswers
+        };
+      });
+      this._saveState();
+    };
+
     _this._createAnserBox = function (quesId, optionCount) {
       var _this3 = this;
 
@@ -157,6 +187,15 @@ var QuestionBox = function (_React$Component) {
         for (var i = 0; i < optionCount; i++) {
           _loop2(i);
         }
+
+        options.push(React.createElement(
+          'button',
+          { type: 'button', className: 'btn btn-link', style: answerButtonStyle, key: optionCount, onClick: function onClick() {
+              return _this3._unMarkAnswer(quesId);
+            } },
+          'Clear'
+        ));
+
         return options;
       }
     };
@@ -224,16 +263,23 @@ var QuestionBox = function (_React$Component) {
     value: function componentDidMount() {
       var _this5 = this;
 
+      this._tryToRetrieve();
+
       this.myInterval = setInterval(function () {
         if (_this5.state.started !== 'N') {
           var timeToGo = _this5.state.time - TIMER_INTERVAL;
           if (timeToGo < 0) {
-            _finalSubmit('Y');
+            _this5._finalSubmit('Y');
           } else {
             _this5._saveState();
             _this5.setState(function (state) {
               return { time: timeToGo };
             });
+          }
+
+          if (timeToGo < TIMER_WARNING * 60 && !timerWarned) {
+            timerWarned = true;
+            alert('Warning! Less than ' + TIMER_WARNING + ' minutes to go.');
           }
         }
       }, 1000 * TIMER_INTERVAL);
@@ -305,9 +351,9 @@ var QuestionBox = function (_React$Component) {
             'p',
             { style: { float: 'right' } },
             'Time Left: ',
-            Math.floor(this.state.time / 60),
+            this._niceString(Math.floor(this.state.time / 60)),
             ':',
-            this.state.time % 60
+            this._niceString(this.state.time % 60)
           ),
           React.createElement('br', null),
           React.createElement(

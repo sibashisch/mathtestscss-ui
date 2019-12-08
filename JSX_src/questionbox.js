@@ -1,6 +1,7 @@
 'use strict';
 
 const e = React.createElement;
+let timerWarned = false;
 
 class QuestionBox extends React.Component {
   constructor(props) {
@@ -10,15 +11,40 @@ class QuestionBox extends React.Component {
                   duration:props.time, name:props.name, instructions:props.instructions};
   }
 
+  _tryToRetrieve = function () {
+    try {
+      let storedData = JSON.parse(localStorage.getItem(EXAM_SUMP_KEY + ':'+ this.state.examid));
+      if (storedData && storedData.USERNAME === _getUserData(USER_NAME_KEY) && storedData.EXAM === this.state.examid) {
+        this.setState(state => ({
+            started: 'Y',
+            startTime: storedData.STARTTIME,
+            answers: JSON.parse(storedData.ANSWERS),
+            time: storedData.TIMELEFT
+          })
+        );
+      }
+    } catch (err) {
+      _logError(err);
+    }
+  }
+
   componentDidMount() {
+
+    this._tryToRetrieve();
+
     this.myInterval = setInterval(() => {
       if (this.state.started !== 'N') {
         let timeToGo = this.state.time - TIMER_INTERVAL;
         if (timeToGo < 0) {
-          _finalSubmit('Y');
+          this._finalSubmit('Y');
         } else {
           this._saveState();
           this.setState(state => ({time: timeToGo}));
+        }
+
+        if (timeToGo < TIMER_WARNING*60 && !timerWarned) {
+          timerWarned = true;
+          alert ('Warning! Less than ' + TIMER_WARNING + ' minutes to go.');
         }
       }
     }, 1000*TIMER_INTERVAL)
@@ -110,6 +136,15 @@ class QuestionBox extends React.Component {
     this._saveState();
   }
 
+  _unMarkAnswer = function (quesId) {
+    let modAnswers = this.state.answers;
+    delete modAnswers[quesId];
+    this.setState(state => ({
+      answers: modAnswers
+    }));
+    this._saveState();
+  }
+
   _createAnserBox = function (quesId, optionCount) {
     if (optionCount <= 0) {
       return <input type="text" className="form-control" id="answer-input" value={this.state.answers[quesId]} />;
@@ -137,9 +172,15 @@ class QuestionBox extends React.Component {
                 {"Option " + this._convertIndexToOption(i)}
               </button>
             );
-        }
-        
+        } 
       }
+
+      options.push (
+          <button type="button" className="btn btn-link" style={answerButtonStyle} key={optionCount} onClick={() => this._unMarkAnswer(quesId)}>
+            Clear
+          </button>
+        );
+
       return options;
     }
   }
@@ -207,7 +248,9 @@ class QuestionBox extends React.Component {
     } else if (this.state.submit === 'N') {
       return (
         <div style={containerStyle}>
-          <p style={{float: 'right'}}>Time Left: {Math.floor(this.state.time/60)}:{this.state.time%60}</p><br />
+          <p style={{float: 'right'}}>
+            Time Left: {this._niceString(Math.floor(this.state.time/60))}:{this._niceString(this.state.time%60)}
+          </p><br />
           <h5 id="question-desc">{question.desc}</h5> <br />
           <img src={this._getImageURL(question.image)} alt={question.desc} style={questionImageStyle} /><br /><br />
           {this._createAnserBox(question.quesid, question.optioncount)} <hr />
