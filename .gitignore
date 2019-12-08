@@ -1,3 +1,6 @@
 .project
 .settings
 mathtestui-web/
+node_modules/**
+package*.json
+to_init_JSX.txt

@@ -20,11 +20,17 @@
 				$('#username-span').html(_getUserData(USER_DISP_KEY));
 
 				let userType = _getUserData(USER_TYPE_KEY);
+				if (userType === '1' || userType === '2' || userType === '3') {
+					$('.login-only').show();
+				}
 				if (userType === '1' || userType === '2') {
 					$('.admin-only').show();
 				}
 				if (userType === '1') {
 					$('.master-only').show();
+				}
+				if (!userType || (userType !== '1' && userType !== '2' && userType !== '3')) {
+					$('.logout-only').show();
 				}
 				$('.init-hidden').hide();
 
@@ -57,7 +63,10 @@
 			#main-div button {
 				text-align: justify-all;
 			}
-			.admin-only, .master-only {
+			.note-span {
+				font-size: smaller;
+			}
+			.admin-only, .master-only, .login-only, .logout-only {
 				display: none;
 			}
 			.btn-lnk {
@@ -93,6 +102,8 @@
 					    	<h6 class="card-subtitle mb-2 text-muted"><span id="username-span"></span></h6>
 					    	<div class="card-text">
 					    		<div id="main-div">
+
+					    			<h5 class="logout-only">You are not Logged In. Click <a href="index.html">Here</a> to login.</h5>
 					    			
 					    			<hr class="admin-only" /> 
 					    			<button type="button" class="btn btn-lnk admin-only" id="createuser-btn">Create User</button>
@@ -121,14 +132,17 @@
 					    			<hr class="admin-only" /> 
 					    			<button type="button" class="btn btn-lnk admin-only" id="createques-btn">New Question</button>
 
-									<input type="text" class="form-control init-hidden" id="createques-topic-inp" placeholder="Topic" />	
-					    			<input type="text" class="form-control init-hidden" id="createques-quesdesc-inp" placeholder="Description" />
-					    			<input type="text" class="form-control init-hidden" id="createques-image-inp" placeholder="Link to the image" />
-					    			<input type="number" class="form-control init-hidden" id="createques-optioncount-inp" placeholder="Option Count" title="Enter 0 for non-MCQs" />
-					    			<input type="text" class="form-control init-hidden" id="createques-answer-inp" placeholder="Correct Answer" title="For MCQs write the correct option here" />
-					    			<button type="button" class="btn btn-primary init-hidden" id="createques-go-btn">Create &rarr;</button>
+									<input type="text" class="form-control init-hidden" id="createques-topic-inp" placeholder="Topic" disabled />	
+					    			<input type="text" class="form-control init-hidden" id="createques-quesdesc-inp" placeholder="Description" disabled />
+					    			<input type="text" class="form-control init-hidden" id="createques-image-inp" placeholder="Link to the image" disabled />
+					    			<input type="number" class="form-control init-hidden" id="createques-optioncount-inp" placeholder="Option Count" title="Enter 0 for non-MCQs" disabled />
+					    			<input type="text" class="form-control init-hidden" id="createques-answer-inp" placeholder="Correct Answer" title="For MCQs write the correct option here" disabled />
+					    			<button type="button" class="btn btn-primary init-hidden" id="createques-go-btn" disabled>Create &rarr;</button>
 					    			<div class="message-div init-hidden" id="createques-message-div"></div>
 					    			<div class="success-div init-hidden" id="createques-success-div"></div>
+					    			<span class="text-muted init-hidden note-span" id="createques-note">
+					    				*This option is not enabled yet! Add questions by uploading them in Google Drive.
+					    			</span>
 
 
 					    			<hr class="admin-only" /> 
@@ -155,6 +169,9 @@
 					    			<button type="button" class="btn btn-primary init-hidden" id="examques-go-btn">Go &rarr;</button>
 					    			<div class="message-div init-hidden" id="examques-message-div"></div>
 					    			<div class="success-div init-hidden" id="examques-success-div"></div>
+					    			<span class="text-muted init-hidden note-span" id="examques-note">
+					    				*To add questions for the second time, upload new questions to Drive and resync using this option again.
+					    			</span>
 
 					    			<hr class="admin-only" /> 
 					    			<button type="button" class="btn btn-lnk admin-only" id="examstudent-btn">Add User to Exam</button>
@@ -164,8 +181,17 @@
 					    			<div class="message-div init-hidden" id="examstudent-message-div"></div>
 					    			<div class="success-div init-hidden" id="examstudent-success-div"></div>
 
-					    			<hr /> <button type="button" class="btn btn-lnk" id="test-btn">Take Test</button>
-					    			<hr /> <button type="button" class="btn btn-lnk" id="logout-btn">Logout</button>
+					    			<hr />
+					    			<button type="button" class="btn btn-lnk login-only" id="test-btn">Take Test</button>
+					    			
+					    			<input type="text" class="form-control init-hidden" id="test-examname-inp" placeholder="Exam Name" />
+					    			<button type="button" class="btn btn-primary init-hidden" id="test-go-btn">Go &rarr;</button>
+					    			<div class="message-div init-hidden" id="test-message-div"></div>
+					    			<div class="success-div init-hidden" id="test-success-div"></div>
+
+
+					    			<hr /> 
+					    			<button type="button" class="btn btn-lnk login-only" id="logout-btn">Logout</button>
 					    		</div>
 					    	</div>
 						</div>

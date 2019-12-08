@@ -22,14 +22,20 @@
 				$('#username-span').html('(' + 'Sibashis Chatterjee' + ')'); // CHANGE
 				$('#exam-modal').modal();
 
-				_ajaxCall ('exam-modal', '/quesdata.js', 'get', {}, 'json', 'message-div', function (response) {
+				let examIdToGet = window.location.href.split('?')[1].split('=')[1];
+				_ajaxCall ('exam-modal', '/exam/get/'+examIdToGet, 'get', {withpics:'Y'}, 'json', 'message-div', function (response) {
 					const domContainer = document.querySelector('#main-div');
-					ReactDOM.render(e(QuestionBox), domContainer, response);
+					response.withpic = "Y";
+					response.examid = examIdToGet;
+					ReactDOM.render(e(QuestionBox, response), domContainer);
 				});
 			});
 		</script>
 
 		<style>
+			div.modal-content {
+				width: 90%;
+			}
 			#main-div input, #main-div button {
 				margin-bottom: 10px;
 			}
@@ -43,13 +49,11 @@
 	<body>
 		<!-- Login Modal Starts -->
 		<div class="modal" id="exam-modal" data-backdrop="static" data-keyboard="false">
-  			<div class="modal-dialog">
+  			<div class="modal-dialog modal-lg">
     			<div class="modal-content">
-					
 					<div class="card col-sm-12">
 						<div class="card-body">
-					    	<h5 class="card-title">Test Centre</h5><br />
-					    	<h6 class="card-subtitle mb-2 text-muted">Take Test <span id="username-span"></span></h6>
+					    	<h5 class="card-title">Test Centre <span id="username-span"></span></h5>
 					    	<div class="card-text">
 					    		<div id="main-div"></div>
 					    		<div id="message-div"></div>

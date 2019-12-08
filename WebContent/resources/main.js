@@ -1,9 +1,12 @@
-const BASE_URL = '/testcentre';
+//const BASE_URL = '/testcentre';
+const BASE_URL = 'http://152.67.0.11:8001/testcentre';
 
 const USER_NAME_KEY = 'mathtest-username';
 const USER_AUTH_KEY = 'mathtest-usersuth';
 const USER_TYPE_KEY = 'mathtest-usertype';
 const USER_DISP_KEY = 'mathtest-dispname';
+
+const EXAM_SUMP_KEY = 'mathtest-examdump';
 
 const PARAM_USER_LIST = 'mathtest-userlist';
 const PARAM_ADDED_USERS = 'mathtest-addedusers';
@@ -12,6 +15,7 @@ const PARAM_EXAM_NAME = 'mathtest-examname';
 const LOGIN_PAGE = 'index.html';
 const USER_HOME = 'home.html';
 const EXAM_USER_PAGE = 'examuser.html';
+const EXAM_PAGE = 'exam.html';
 
 const ERROR_MESSGAE = 'Some Error Occurred';
 

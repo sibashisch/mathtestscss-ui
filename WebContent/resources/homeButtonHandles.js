@@ -7,9 +7,12 @@ let _assignHandlers = function (userType) {
 	let topicsForQuesLoaded = false;
 	let examNameForQuesLoaded = false;
 	let examStudentListLoaded = false;
+	let takeExamNamesLoaded = false;
 
 
 	$('#createuser-btn').click(function () {
+		$('#createuser-message-div').html ('');
+		$('#createuser-success-div').html ('');
 		$('[id^="createuser-"]:not("#createuser-btn")').slideToggle();
 	});
 
@@ -39,6 +42,8 @@ let _assignHandlers = function (userType) {
 
 
 	$('#topic-btn').click(function() {
+		$('#topic-message-div').html ('');
+		$('#topic-success-div').html ('');
 		if ($('[id^="topic-"]:not("#topic-btn")').css('display') === 'none' && !topicsLoaded) {
 			_ajaxCall (sourceModalId, '/topic/list', 'get', {}, 'json', 'topic-message-div', function (resp) {
 				$("#topic-topicname-inp").typeahead({ source: resp.topics, autoSelect: true, showHintOnFocus: true });
@@ -64,6 +69,8 @@ let _assignHandlers = function (userType) {
 
 
 	$('#createques-btn').click(function() {
+		$('#createques-message-div').html ('');
+		$('#createques-success-div').html ('');
 		if ($('[id^="createques-"]:not("#createques-btn")').css('display') === 'none' && !topicsForQuesLoaded) {
 			_ajaxCall (sourceModalId, '/topic/list', 'get', {}, 'json', 'topic-message-div', function (resp) {
 				$("#createques-topic-inp").typeahead({ source: resp.topics, autoSelect: true, showHintOnFocus: true });
@@ -103,6 +110,8 @@ let _assignHandlers = function (userType) {
 
 
 	$('#createexam-btn').click(function() {
+		$('#createexam-message-div').html ('');
+		$('#createexam-success-div').html ('');
 		if ($('[id^="createexam-"]:not("#createexam-btn")').css('display') === 'none'  && !examNamesLoaded) {
 			_ajaxCall (sourceModalId, '/exam/listnames', 'get', {}, 'json', 'createexam-message-div', function (resp) {
 				$("#createexam-examname-inp").typeahead({ source: resp.examnames, autoSelect: true, showHintOnFocus: true });
@@ -146,6 +155,8 @@ let _assignHandlers = function (userType) {
 
 
 	$('#examques-btn').click(function() {
+		$('#examques-message-div').html ('');
+		$('#examques-success-div').html ('');
 		if ($('[id^="examques-"]:not("#examques-btn")').css('display') === 'none'  && !examNameForQuesLoaded) {
 			_ajaxCall (sourceModalId, '/exam/listnames', 'get', {}, 'json', 'examques-message-div', function (resp) {
 				$("#examques-examname-inp").typeahead({ source: resp.examnames, autoSelect: true, showHintOnFocus: true });
@@ -174,6 +185,8 @@ let _assignHandlers = function (userType) {
 
 
 	$('#examstudent-btn').click (function() {
+		$('#examstudent-message-div').html ('');
+		$('#examstudent-success-div').html ('');
 		if ($('[id^="examstudent-"]:not("#examstudent-btn")').css('display') === 'none'  && !examStudentListLoaded) {
 			_ajaxCall (sourceModalId, '/exam/listnames', 'get', {}, 'json', 'examstudent-message-div', function (resp) {
 				$("#examstudent-examname-inp").typeahead({ source: resp.examnames, autoSelect: true, showHintOnFocus: true });
@@ -196,6 +209,34 @@ let _assignHandlers = function (userType) {
 				_saveUserData(PARAM_EXAM_NAME, examName);
 				window.location.href = EXAM_USER_PAGE;
 			});
+		}
+	});
+
+
+	$('#test-btn').click (function() {
+		$('#test-message-div').html ('');
+		$('#test-success-div').html ('');
+		if ($('[id^="test-"]:not("#test-btn")').css('display') === 'none'  && !takeExamNamesLoaded) {
+			_ajaxCall (sourceModalId, '/exam/get/list', 'get', {}, 'json', 'test-message-div', function (resp) {
+				let examNames = [];
+				resp.examdata.forEach (exam => {
+					examNames.push(exam.id + ": " + exam.name + " (from " + exam.owner + ")");
+				});
+				$("#test-examname-inp").typeahead({ source: examNames, autoSelect: true, showHintOnFocus: true });
+				takeExamNamesLoaded = true;
+			});	
+		} 
+		$('[id^="test-"]:not("#test-btn")').slideToggle();
+	});
+
+	$('#test-go-btn').click(function() {
+		$('#test-message-div').html ('');
+		$('#test-success-div').html ('');
+		let examName = $('#test-examname-inp').val().trim();
+		if (examName === '') {
+			$('#test-message-div').html ('Exam Name Should Not be Blank');
+		} else {
+			window.location.href = EXAM_PAGE + '?examId=' + examName.split(':')[0];
 		}
 	});
 
