@@ -7,6 +7,7 @@ const USER_TYPE_KEY = 'mathtest-usertype';
 const USER_DISP_KEY = 'mathtest-dispname';
 
 const EXAM_SUMP_KEY = 'mathtest-examdump';
+const TIMER_INTERVAL = 1;
 
 const PARAM_USER_LIST = 'mathtest-userlist';
 const PARAM_ADDED_USERS = 'mathtest-addedusers';

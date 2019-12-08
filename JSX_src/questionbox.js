@@ -6,10 +6,23 @@ class QuestionBox extends React.Component {
   constructor(props) {
     super(props);
     this.state = {questions:props.questions, answers:{}, questionIndex:0, withpic:props.withpic, 
-                  imagedata:props.imagedata, submit:'N', started: 'N', examid:props.examid,
+                  imagedata:props.imagedata, submit:'N', started: 'N', examid:props.examid, time:props.time*60,
                   duration:props.time, name:props.name, instructions:props.instructions};
   }
 
+  componentDidMount() {
+    this.myInterval = setInterval(() => {
+      if (this.state.started !== 'N') {
+        let timeToGo = this.state.time - TIMER_INTERVAL;
+        if (timeToGo < 0) {
+          _finalSubmit('Y');
+        } else {
+          this._saveState();
+          this.setState(state => ({time: timeToGo}));
+        }
+      }
+    }, 1000*TIMER_INTERVAL)
+  }
 
   _crateExamDump = function() {
     let examDataDump = {};
@@ -18,6 +31,7 @@ class QuestionBox extends React.Component {
     examDataDump['STARTTIME'] = this.state.startTime;
     examDataDump['EXAM'] = this.state.examid;
     examDataDump['ANSWERS'] = JSON.stringify(this.state.answers);
+    examDataDump['TIMELEFT'] = this.state.time;
     return examDataDump;
   }
 
@@ -34,9 +48,13 @@ class QuestionBox extends React.Component {
     this._saveState();
   }
 
-  _finalSubmit = function() {
-    if (confirm('Are you sure?')) {
+  _finalSubmit = function(timeOut) {
+    if (timeOut === 'N' && confirm('Are you sure?')) {
+      this._crateExamDump();
       alert ('Dummy Submitted');
+    } else if (timeOut === 'Y') {
+      this._crateExamDump();
+      alert ('Time Up! Your Test Is Being Submitted');
     }
   }
 
@@ -62,13 +80,13 @@ class QuestionBox extends React.Component {
       let answer = this.state.answers[this.state.questions[i].quesid];
       if (answer)
         allAnswers.push(
-            <button type="button" className="btn btn-primary" style={answerReview} onClick={() => this._returnToQues(i)}>
+            <button type="button" className="btn btn-primary" style={answerReview} key={quesNumber} onClick={() => this._returnToQues(i)}>
               {"Question " + quesNumber + ": " + answer}
             </button>
           );
       else
         allAnswers.push(
-            <button type="button" className="btn btn-warning" style={answerReview} onClick={() => this._returnToQues(i)}>
+            <button type="button" className="btn btn-warning" style={answerReview} key={quesNumber} onClick={() => this._returnToQues(i)}>
               {"Question " + quesNumber + ": Unanswered"}
             </button>
           );
@@ -154,6 +172,13 @@ class QuestionBox extends React.Component {
       return (BASE_URL + "/image/get/" + image);
   }
 
+  _niceString = function (number) {
+    if (number.toString().length === 1)
+      return '0'+number.toString();
+    else
+      return number.toString();
+  }
+
   render() {
     let question = this.state.questions[this.state.questionIndex];
     const questionImageStyle = {
@@ -182,6 +207,7 @@ class QuestionBox extends React.Component {
     } else if (this.state.submit === 'N') {
       return (
         <div style={containerStyle}>
+          <p style={{float: 'right'}}>Time Left: {Math.floor(this.state.time/60)}:{this.state.time%60}</p><br />
           <h5 id="question-desc">{question.desc}</h5> <br />
           <img src={this._getImageURL(question.image)} alt={question.desc} style={questionImageStyle} /><br /><br />
           {this._createAnserBox(question.quesid, question.optioncount)} <hr />
@@ -190,13 +216,18 @@ class QuestionBox extends React.Component {
       );
     } else {
       return (
-        <div style={containerStyle}>
+        <div>
+          <p style={{float: 'right'}}>
+            Time Left: {this._niceString(Math.floor(this.state.time/60))}:{this._niceString(this.state.time%60)}
+          </p><br />
           {this._answerStatus()}
           <br /><br />
-          <button type="button" className="btn btn-success" style={{float: "right"}}>Confirm Submit &rarr;</button>
+          <button type="button" className="btn btn-success" style={{float: "right"}} onClick={() => this._finalSubmit('N')}>
+            Confirm Submit &rarr;
+          </button>
           <br /><br />
           <hr />
-          <h8 className="text-muted" style={{textAlign: "left", float: "left"}}>* Click on a button to return to that question.</h8>
+          <p className="text-muted" style={{textAlign: "left", float: "left"}}>* Click on a button to return to that question.</p>
         </div>
       );
     }

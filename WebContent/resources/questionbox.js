@@ -25,6 +25,7 @@ var QuestionBox = function (_React$Component) {
       examDataDump['STARTTIME'] = this.state.startTime;
       examDataDump['EXAM'] = this.state.examid;
       examDataDump['ANSWERS'] = JSON.stringify(this.state.answers);
+      examDataDump['TIMELEFT'] = this.state.time;
       return examDataDump;
     };
 
@@ -43,9 +44,13 @@ var QuestionBox = function (_React$Component) {
       this._saveState();
     };
 
-    _this._finalSubmit = function () {
-      if (confirm('Are you sure?')) {
+    _this._finalSubmit = function (timeOut) {
+      if (timeOut === 'N' && confirm('Are you sure?')) {
+        this._crateExamDump();
         alert('Dummy Submitted');
+      } else if (timeOut === 'Y') {
+        this._crateExamDump();
+        alert('Time Up! Your Test Is Being Submitted');
       }
     };
 
@@ -78,13 +83,13 @@ var QuestionBox = function (_React$Component) {
         var answer = _this2.state.answers[_this2.state.questions[i].quesid];
         if (answer) allAnswers.push(React.createElement(
           'button',
-          { type: 'button', className: 'btn btn-primary', style: answerReview, onClick: function onClick() {
+          { type: 'button', className: 'btn btn-primary', style: answerReview, key: quesNumber, onClick: function onClick() {
               return _this2._returnToQues(i);
             } },
           "Question " + quesNumber + ": " + answer
         ));else allAnswers.push(React.createElement(
           'button',
-          { type: 'button', className: 'btn btn-warning', style: answerReview, onClick: function onClick() {
+          { type: 'button', className: 'btn btn-warning', style: answerReview, key: quesNumber, onClick: function onClick() {
               return _this2._returnToQues(i);
             } },
           "Question " + quesNumber + ": Unanswered"
@@ -204,16 +209,39 @@ var QuestionBox = function (_React$Component) {
       if (this.state.withpic === 'Y') return "data:image/jpg;base64, " + this.state.imagedata[imageKey];else return BASE_URL + "/image/get/" + image;
     };
 
+    _this._niceString = function (number) {
+      if (number.toString().length === 1) return '0' + number.toString();else return number.toString();
+    };
+
     _this.state = { questions: props.questions, answers: {}, questionIndex: 0, withpic: props.withpic,
-      imagedata: props.imagedata, submit: 'N', started: 'N', examid: props.examid,
+      imagedata: props.imagedata, submit: 'N', started: 'N', examid: props.examid, time: props.time * 60,
       duration: props.time, name: props.name, instructions: props.instructions };
     return _this;
   }
 
   _createClass(QuestionBox, [{
+    key: 'componentDidMount',
+    value: function componentDidMount() {
+      var _this5 = this;
+
+      this.myInterval = setInterval(function () {
+        if (_this5.state.started !== 'N') {
+          var timeToGo = _this5.state.time - TIMER_INTERVAL;
+          if (timeToGo < 0) {
+            _finalSubmit('Y');
+          } else {
+            _this5._saveState();
+            _this5.setState(function (state) {
+              return { time: timeToGo };
+            });
+          }
+        }
+      }, 1000 * TIMER_INTERVAL);
+    }
+  }, {
     key: 'render',
     value: function render() {
-      var _this5 = this;
+      var _this6 = this;
 
       var question = this.state.questions[this.state.questionIndex];
       var questionImageStyle = {
@@ -264,7 +292,7 @@ var QuestionBox = function (_React$Component) {
           React.createElement(
             'button',
             { type: 'button', className: 'btn btn-primary', onClick: function onClick() {
-                return _this5._startExam();
+                return _this6._startExam();
               }, style: { float: 'right' } },
             'I Understand, Start Exam \u2192'
           )
@@ -273,6 +301,15 @@ var QuestionBox = function (_React$Component) {
         return React.createElement(
           'div',
           { style: containerStyle },
+          React.createElement(
+            'p',
+            { style: { float: 'right' } },
+            'Time Left: ',
+            Math.floor(this.state.time / 60),
+            ':',
+            this.state.time % 60
+          ),
+          React.createElement('br', null),
           React.createElement(
             'h5',
             { id: 'question-desc' },
@@ -291,20 +328,31 @@ var QuestionBox = function (_React$Component) {
       } else {
         return React.createElement(
           'div',
-          { style: containerStyle },
+          null,
+          React.createElement(
+            'p',
+            { style: { float: 'right' } },
+            'Time Left: ',
+            this._niceString(Math.floor(this.state.time / 60)),
+            ':',
+            this._niceString(this.state.time % 60)
+          ),
+          React.createElement('br', null),
           this._answerStatus(),
           React.createElement('br', null),
           React.createElement('br', null),
           React.createElement(
             'button',
-            { type: 'button', className: 'btn btn-success', style: { float: "right" } },
+            { type: 'button', className: 'btn btn-success', style: { float: "right" }, onClick: function onClick() {
+                return _this6._finalSubmit('N');
+              } },
             'Confirm Submit \u2192'
           ),
           React.createElement('br', null),
           React.createElement('br', null),
           React.createElement('hr', null),
           React.createElement(
-            'h8',
+            'p',
             { className: 'text-muted', style: { textAlign: "left", float: "left" } },
             '* Click on a button to return to that question.'
           )
