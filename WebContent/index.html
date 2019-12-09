@@ -36,6 +36,8 @@
 							_saveUserData(USER_NAME_KEY, response.username);
 							_saveUserData(USER_TYPE_KEY, response.usertype);
 							_saveUserData(USER_DISP_KEY, response.displayname);
+							_saveUserData(USER_ENCR_KEY, response.pubkey);
+							_saveUserData(USER_ENCR_ID_KEY, response.pubkeyid);
 
 							_onLoginSuccess();
 						});

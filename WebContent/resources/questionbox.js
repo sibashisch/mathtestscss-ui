@@ -23,25 +23,66 @@ var QuestionBox = function (_React$Component) {
       try {
         var storedData = JSON.parse(localStorage.getItem(EXAM_SUMP_KEY + ':' + this.state.examid));
         if (storedData && storedData.USERNAME === _getUserData(USER_NAME_KEY) && storedData.EXAM === this.state.examid) {
+          if ((new Date().getTime() - storedData.DUMPTIMEMILLIS) / 1000 > 2 * 60) {
+            alert('You Were Away For More Than 5 Minutes, Submitting Exam.');
+            this._finalSubmit('T');
+          }
           this.setState(function (state) {
             return {
               started: 'Y',
               startTime: storedData.STARTTIME,
               answers: JSON.parse(storedData.ANSWERS),
-              time: storedData.TIMELEFT
+              time: storedData.TIMELEFT,
+              loading: 'N'
             };
           });
         }
       } catch (err) {
         _logError(err);
       }
+      /*
+      let storedDataKeyId = localStorage.getItem(EXAM_SUMP_KEY + ':'+ this.state.examid + ':id');
+      let validatorStr = localStorage.getItem(EXAM_SUMP_KEY + ':'+ this.state.examid + ':validator');
+      if (storedDataKeyId && storedDataEncr && validatorStr) {
+        this.setState(state => ({ loading: 'Please Wait, Trying To Pickup From Where You Left.' }));
+        fetch (`${BASE_URL}/validate/decr/${storedDataKeyId}?message=${encodeURIComponent(storedDataEncr)}&validator=${validatorStr}&submission=N`, 
+              {headers: {Authtoken: _getUserData(USER_AUTH_KEY)}})
+        .then(res => res.json())
+        .then((result) => {
+          if (result.status && result.status === 'success') {
+            let storedData = JSON.parse(result.clearmessage);
+            if (storedData && storedData.USERNAME === _getUserData(USER_NAME_KEY) && storedData.EXAM === this.state.examid) {
+              this.setState(state => ({
+                  started: 'Y',
+                  startTime: storedData.STARTTIME,
+                  answers: JSON.parse(storedData.ANSWERS),
+                  time: storedData.TIMELEFT,
+                  loading: 'N'
+                })
+              );
+            } else {
+              this.setState(state => ({ loading:'N' }));
+            }
+          } else {
+            this.setState(state => ({ loading:'N' }));
+            _logError(result);
+          }
+        }, (error) => {
+          this.setState(state => ({ loading:'N' }));
+          _logError(error);
+          _logError(result);
+        });
+      }
+      */
     };
 
     _this._crateExamDump = function () {
       var examDataDump = {};
       examDataDump['USERNAME'] = _getUserData(USER_NAME_KEY);
       examDataDump['DUMPTIME'] = new Date();
+      examDataDump['DUMPTIMEMILLIS'] = new Date().getTime();
       examDataDump['STARTTIME'] = this.state.startTime;
+      examDataDump['STARTTIMEMILLIS'] = new Date(this.state.startTime).getTime();
       examDataDump['EXAM'] = this.state.examid;
       examDataDump['ANSWERS'] = JSON.stringify(this.state.answers);
       examDataDump['TIMELEFT'] = this.state.time;
@@ -49,8 +90,16 @@ var QuestionBox = function (_React$Component) {
     };
 
     _this._saveState = function () {
+      if (this.state.started === 'N') return;
       try {
-        localStorage.setItem(EXAM_SUMP_KEY + ':' + this.state.examid, JSON.stringify(this._crateExamDump()));
+        var dataDump = this._crateExamDump();
+        // let randomValidator = _generateExamDataValidationString();
+        // dataDump.validator = randomValidator;
+        // encrypt.setPublicKey(_getUserData(USER_ENCR_KEY));
+        // localStorage.setItem(EXAM_SUMP_KEY + ':'+ this.state.examid, encrypt.encrypt(JSON.stringify(dataDump)));
+        localStorage.setItem(EXAM_SUMP_KEY + ':' + this.state.examid, JSON.stringify(dataDump));
+        localStorage.setItem(EXAM_SUMP_KEY + ':' + this.state.examid + ':id', _getUserData(USER_ENCR_ID_KEY));
+        // localStorage.setItem(EXAM_SUMP_KEY + ':'+ this.state.examid + ':validator', sha256(randomValidator));
       } catch (err) {
         _logError(err);
       }
@@ -64,12 +113,41 @@ var QuestionBox = function (_React$Component) {
     };
 
     _this._finalSubmit = function (timeOut) {
-      if (timeOut === 'N' && confirm('Are you sure?')) {
-        this._crateExamDump();
-        alert('Dummy Submitted');
-      } else if (timeOut === 'Y') {
-        this._crateExamDump();
+      var _this2 = this;
+
+      var finalStatus = this._crateExamDump();
+      if (timeOut === 'Y') {
         alert('Time Up! Your Test Is Being Submitted');
+      }
+      if (timeOut === 'Y' || timeOut === 'T' || confirm('Are you sure?')) {
+        this.setState(function (state) {
+          return { loading: 'Exam Being Submitted. Please Don\'t Leave This Page.' };
+        });
+        var dataDump = this._crateExamDump();
+        fetch(BASE_URL + '/exam/user/submit?message=' + encodeURIComponent(JSON.stringify(dataDump)), { method: 'POST', headers: { Authtoken: _getUserData(USER_AUTH_KEY) } }).then(function (res) {
+          return res.json();
+        }).then(function (result) {
+          if (result && result.status && result.status === 'success') {
+            try {
+              localStorage.removeItem(EXAM_SUMP_KEY + ':' + _this2.state.examid);
+              localStorage.removeItem(EXAM_SUMP_KEY + ':' + _this2.state.examid + ':id');
+            } catch (err) {
+              _logError(err);
+            }
+            _this2.setState(function (state) {
+              return { submitted: 'S' };
+            });
+          } else {
+            _this2.setState(function (state) {
+              return { submitted: 'Exam Could Not be Submitted. ' + result.exception };
+            });
+          }
+        }, function (error) {
+          _logError(errr);
+          _this2.setState(function (state) {
+            return { submitted: 'X' };
+          });
+        });
       }
     };
 
@@ -86,7 +164,7 @@ var QuestionBox = function (_React$Component) {
     };
 
     _this._answerStatus = function () {
-      var _this2 = this;
+      var _this3 = this;
 
       var answerReview = {
         marginLeft: "2px",
@@ -99,17 +177,17 @@ var QuestionBox = function (_React$Component) {
 
       var _loop = function _loop(i) {
         var quesNumber = i + 1;
-        var answer = _this2.state.answers[_this2.state.questions[i].quesid];
+        var answer = _this3.state.answers[_this3.state.questions[i].quesid];
         if (answer) allAnswers.push(React.createElement(
           'button',
           { type: 'button', className: 'btn btn-primary', style: answerReview, key: quesNumber, onClick: function onClick() {
-              return _this2._returnToQues(i);
+              return _this3._returnToQues(i);
             } },
           "Question " + quesNumber + ": " + answer
         ));else allAnswers.push(React.createElement(
           'button',
           { type: 'button', className: 'btn btn-warning', style: answerReview, key: quesNumber, onClick: function onClick() {
-              return _this2._returnToQues(i);
+              return _this3._returnToQues(i);
             } },
           "Question " + quesNumber + ": Unanswered"
         ));
@@ -148,7 +226,7 @@ var QuestionBox = function (_React$Component) {
     };
 
     _this._createAnserBox = function (quesId, optionCount) {
-      var _this3 = this;
+      var _this4 = this;
 
       if (optionCount <= 0) {
         return React.createElement('input', { type: 'text', className: 'form-control', id: 'answer-input', value: this.state.answers[quesId] });
@@ -164,22 +242,22 @@ var QuestionBox = function (_React$Component) {
         var options = [];
 
         var _loop2 = function _loop2(i) {
-          var optionText = _this3._convertIndexToOption(i);
-          if (_this3.state.answers[quesId] && _this3.state.answers[quesId] === optionText) {
+          var optionText = _this4._convertIndexToOption(i);
+          if (_this4.state.answers[quesId] && _this4.state.answers[quesId] === optionText) {
             options.push(React.createElement(
               'button',
               { type: 'button', className: 'btn btn-primary', style: answerButtonStyle, key: i, onClick: function onClick() {
-                  return _this3._markAnswer(quesId, optionText);
+                  return _this4._markAnswer(quesId, optionText);
                 } },
-              'Option ' + _this3._convertIndexToOption(i)
+              'Option ' + _this4._convertIndexToOption(i)
             ));
           } else {
             options.push(React.createElement(
               'button',
               { type: 'button', className: 'btn btn-link', style: answerButtonStyle, key: i, onClick: function onClick() {
-                  return _this3._markAnswer(quesId, optionText);
+                  return _this4._markAnswer(quesId, optionText);
                 } },
-              "Option " + _this3._convertIndexToOption(i)
+              "Option " + _this4._convertIndexToOption(i)
             ));
           }
         };
@@ -191,7 +269,7 @@ var QuestionBox = function (_React$Component) {
         options.push(React.createElement(
           'button',
           { type: 'button', className: 'btn btn-link', style: answerButtonStyle, key: optionCount, onClick: function onClick() {
-              return _this3._unMarkAnswer(quesId);
+              return _this4._unMarkAnswer(quesId);
             } },
           'Clear'
         ));
@@ -207,16 +285,16 @@ var QuestionBox = function (_React$Component) {
     };
 
     _this._createNavigationBox = function () {
-      var _this4 = this;
+      var _this5 = this;
 
       var allNavigations = [];
 
       var _loop3 = function _loop3(i) {
-        if (_this4.state.questionIndex === i) {
+        if (_this5.state.questionIndex === i) {
           allNavigations.push(React.createElement(
             'button',
             { type: 'button', className: 'btn btn-primary', key: i, onClick: function onClick() {
-                return _this4._navigateToQuesIndex(i);
+                return _this5._navigateToQuesIndex(i);
               } },
             i + 1
           ));
@@ -224,7 +302,7 @@ var QuestionBox = function (_React$Component) {
           allNavigations.push(React.createElement(
             'button',
             { type: 'button', className: 'btn btn-link', key: i, onClick: function onClick() {
-                return _this4._navigateToQuesIndex(i);
+                return _this5._navigateToQuesIndex(i);
               } },
             i + 1
           ));
@@ -237,7 +315,7 @@ var QuestionBox = function (_React$Component) {
       allNavigations.push(React.createElement(
         'button',
         { type: 'button', className: 'btn btn-success', key: this.state.questions.length, onClick: function onClick() {
-            return _this4._submitExam();
+            return _this5._submitExam();
           } },
         'Submit \u2192'
       ));
@@ -252,27 +330,38 @@ var QuestionBox = function (_React$Component) {
       if (number.toString().length === 1) return '0' + number.toString();else return number.toString();
     };
 
+    _this._clear = function () {
+      if (confirm('Are you sure? You will never be able to submit this exam again')) {
+        try {
+          localStorage.removeItem(EXAM_SUMP_KEY + ':' + this.state.examid);
+          localStorage.removeItem(EXAM_SUMP_KEY + ':' + this.state.examid + ':id');
+        } catch (err) {
+          _logError(err);
+        }
+      }
+    };
+
     _this.state = { questions: props.questions, answers: {}, questionIndex: 0, withpic: props.withpic,
       imagedata: props.imagedata, submit: 'N', started: 'N', examid: props.examid, time: props.time * 60,
-      duration: props.time, name: props.name, instructions: props.instructions };
+      duration: props.time, name: props.name, instructions: props.instructions, loading: 'N', submitted: 'N' };
     return _this;
   }
 
   _createClass(QuestionBox, [{
     key: 'componentDidMount',
     value: function componentDidMount() {
-      var _this5 = this;
+      var _this6 = this;
 
       this._tryToRetrieve();
-
       this.myInterval = setInterval(function () {
-        if (_this5.state.started !== 'N') {
-          var timeToGo = _this5.state.time - TIMER_INTERVAL;
+        if (_this6.state.started !== 'N') {
+          var timeToGo = _this6.state.time - TIMER_INTERVAL;
           if (timeToGo < 0) {
-            _this5._finalSubmit('Y');
+            clearTimeout(_this6.myInterval);
+            _this6._finalSubmit('Y');
           } else {
-            _this5._saveState();
-            _this5.setState(function (state) {
+            _this6._saveState();
+            _this6.setState(function (state) {
               return { time: timeToGo };
             });
           }
@@ -287,7 +376,7 @@ var QuestionBox = function (_React$Component) {
   }, {
     key: 'render',
     value: function render() {
-      var _this6 = this;
+      var _this7 = this;
 
       var question = this.state.questions[this.state.questionIndex];
       var questionImageStyle = {
@@ -298,7 +387,58 @@ var QuestionBox = function (_React$Component) {
         textAlign: "center"
       };
 
-      if (this.state.started === 'N') {
+      if (this.state.submitted === 'S') {
+        return React.createElement(
+          'div',
+          null,
+          'Exam Successfully Submitted. Click ',
+          React.createElement(
+            'a',
+            { href: '{USER_HOME}' },
+            'Here'
+          ),
+          ' To Go back.'
+        );
+      } else if (this.state.submitted === 'X') {
+        return React.createElement(
+          'div',
+          null,
+          'Some Error Occurred. Refresh Page To Submit Again. If Problem Persists, Contact Your Paper Setter. ',
+          React.createElement('br', null),
+          React.createElement('br', null),
+          React.createElement(
+            'button',
+            { type: 'button', className: 'btn btn-danger', onClick: function onClick() {
+                return _this7._clear();
+              } },
+            'Delete Exam Data'
+          )
+        );
+      } else if (this.state.submitted !== 'N') {
+        return React.createElement(
+          'div',
+          { style: { color: 'blue' } },
+          this.state.submitted,
+          React.createElement('br', null),
+          React.createElement('br', null),
+          React.createElement(
+            'button',
+            { type: 'button', className: 'btn btn-danger', onClick: function onClick() {
+                return _this7._clear();
+              } },
+            'Delete Exam Data'
+          )
+        );
+      } else if (this.state.loading !== 'N') {
+        return React.createElement(
+          'div',
+          null,
+          this.state.loading,
+          ' ',
+          React.createElement('br', null),
+          React.createElement('img', { src: 'resources/images/loader.gif', alr: 'Loading' })
+        );
+      } else if (this.state.started === 'N') {
         return React.createElement(
           'div',
           null,
@@ -338,7 +478,7 @@ var QuestionBox = function (_React$Component) {
           React.createElement(
             'button',
             { type: 'button', className: 'btn btn-primary', onClick: function onClick() {
-                return _this6._startExam();
+                return _this7._startExam();
               }, style: { float: 'right' } },
             'I Understand, Start Exam \u2192'
           )
@@ -390,7 +530,7 @@ var QuestionBox = function (_React$Component) {
           React.createElement(
             'button',
             { type: 'button', className: 'btn btn-success', style: { float: "right" }, onClick: function onClick() {
-                return _this6._finalSubmit('N');
+                return _this7._finalSubmit('N');
               } },
             'Confirm Submit \u2192'
           ),

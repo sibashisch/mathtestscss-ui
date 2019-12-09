@@ -16,8 +16,12 @@
 
 		<script src="resources/questionbox.js"></script>
 		<script src="resources/main.js" type="text/javascript"></script>
+		<script src="resources/jsencrypt.min.js" type="text/javascript"></script>
+		<script src="resources/sha256.min.js" type="text/javascript"></script>
 		
 		<script>
+			const encrypt = new JSEncrypt();
+
 			$(document).ready(function() {
 				$('#username-span').html('(' + 'Sibashis Chatterjee' + ')'); // CHANGE
 				$('#exam-modal').modal();
@@ -34,6 +38,7 @@
 					_logError(err);
 					$('#message-div').html('Please Follow Proper Channel, Don\'t Enter URL Directly.');
 				}
+
 			});
 		</script>
 

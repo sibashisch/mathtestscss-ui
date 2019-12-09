@@ -5,6 +5,8 @@ const USER_NAME_KEY = 'mathtest-username';
 const USER_AUTH_KEY = 'mathtest-usersuth';
 const USER_TYPE_KEY = 'mathtest-usertype';
 const USER_DISP_KEY = 'mathtest-dispname';
+const USER_ENCR_KEY = 'mathtest-encrsalt';
+const USER_ENCR_ID_KEY = 'mathtest-encrid';
 
 const EXAM_SUMP_KEY = 'mathtest-examdump';
 const TIMER_INTERVAL = 1;
@@ -20,6 +22,8 @@ const EXAM_USER_PAGE = 'examuser.html';
 const EXAM_PAGE = 'exam.html';
 
 const ERROR_MESSGAE = 'Some Error Occurred';
+
+const VALIDATOR_STR_LEN = 24;
 
 let _logError = function (err) {
 	try {
@@ -125,6 +129,7 @@ let _logout = function (sourceModalId, errorDiv) {
 		_clearUserData(USER_NAME_KEY);
 		_clearUserData(USER_TYPE_KEY);
 		_clearUserData(USER_DISP_KEY);
+		_clearUserData(USER_ENCR_KEY);
 
 		_clearUserData(PARAM_USER_LIST);
 		_clearUserData(PARAM_ADDED_USERS);
@@ -153,4 +158,14 @@ let _createTimePicker = function (elemId, opt) {
 		$('#'+elemId).append(elem);
 		i++;
 	}
+}
+
+let _generateExamDataValidationString = function () {
+   let result = '';
+   let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+   let charactersLength = characters.length;
+   for (let i = 0; i < VALIDATOR_STR_LEN; i++) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+   }
+   return result;
 }

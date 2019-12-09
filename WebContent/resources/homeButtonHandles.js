@@ -10,6 +10,18 @@ let _assignHandlers = function (userType) {
 	let takeExamNamesLoaded = false;
 
 
+	$('#rotatekey-btn').click(function () {
+		$('#rotatekey-message-div').html ('');
+		$('#rotatekey-success-div').html ('');
+		$('[id^="rotatekey-"]:not("#rotatekey-btn")').show();
+		if (confirm("Are You Sure You Want To Rotate The Key Pair? Proceed Only If You Know What You Are Doing.")) {
+			_ajaxCall (sourceModalId, '/validate/newkey', 'get', {}, 'json', 'rotatekey-message-div', function () {
+				$('#rotatekey-success-div').html ('Key Rotated Successfully.');
+			});
+		}
+	});
+
+
 	$('#createuser-btn').click(function () {
 		$('#createuser-message-div').html ('');
 		$('#createuser-success-div').html ('');
