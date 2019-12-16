@@ -90,7 +90,7 @@ var QuestionBox = function (_React$Component) {
     };
 
     _this._saveState = function () {
-      if (this.state.started === 'N') return;
+      if (this.state.started === 'N' || this.state.submitted !== 'N' || this.state.startMode === 'edit') return;
       try {
         var dataDump = this._crateExamDump();
         // let randomValidator = _generateExamDataValidationString();
@@ -105,9 +105,9 @@ var QuestionBox = function (_React$Component) {
       }
     };
 
-    _this._startExam = function () {
+    _this._startExam = function (option) {
       this.setState(function (state) {
-        return { started: 'Y', startTime: new Date() };
+        return { started: 'Y', startTime: new Date(), startMode: option };
       });
       this._saveState();
     };
@@ -152,7 +152,7 @@ var QuestionBox = function (_React$Component) {
     };
 
     _this._submitExam = function () {
-      this.setState(function (state) {
+      if (this.state.isowner === 'Y' && this.state.startMode === 'edit') window.location.reload();else this.setState(function (state) {
         return { submit: 'Y' };
       });
     };
@@ -225,11 +225,30 @@ var QuestionBox = function (_React$Component) {
       this._saveState();
     };
 
-    _this._createAnserBox = function (quesId, optionCount) {
+    _this._createAnserBox = function (quesId, optionCount, answer) {
       var _this4 = this;
 
       if (optionCount <= 0) {
-        return React.createElement('input', { type: 'text', className: 'form-control', id: 'answer-input', value: this.state.answers[quesId] });
+        var options = [];
+        if (this.state.isowner === 'Y' && answer) {
+          options.push(React.createElement('input', { type: 'text', className: 'form-control', id: 'answer-input', value: answer, key: '1' }));
+        } else {
+          options.push(React.createElement('input', { type: 'text', className: 'form-control', id: 'answer-input', value: this.state.answers[quesId], key: '1' }));
+        }
+        options.push(React.createElement(
+          'div',
+          { key: '2' },
+          React.createElement('input', { type: 'number', className: 'form-control form-inline', id: 'editques-option-inp', placeholder: 'Option Count', key: '3' }),
+          React.createElement('input', { type: 'text', className: 'form-control form-inline', id: 'editques-ans-inp', placeholder: 'Correct Answer', key: '4' }),
+          React.createElement(
+            'button',
+            { type: 'button', className: 'btn btn-primary', key: '5', onClick: function onClick() {
+                return _this4._editquestion(quesId);
+              } },
+            'Edit \u2192'
+          )
+        ));
+        return options;
       } else {
         var answerButtonStyle = {
           paddingLeft: "10px",
@@ -239,12 +258,18 @@ var QuestionBox = function (_React$Component) {
           border: "1px solid lightgrey",
           borderRadius: "5px"
         };
-        var options = [];
+        var _options = [];
 
         var _loop2 = function _loop2(i) {
           var optionText = _this4._convertIndexToOption(i);
-          if (_this4.state.answers[quesId] && _this4.state.answers[quesId] === optionText) {
-            options.push(React.createElement(
+          if (_this4.state.isowner === 'Y' && _this4.state.startMode === 'edit' && answer === optionText) {
+            _options.push(React.createElement(
+              'button',
+              { type: 'button', className: 'btn btn-success', style: answerButtonStyle, key: i },
+              'Option ' + _this4._convertIndexToOption(i)
+            ));
+          } else if (_this4.state.answers[quesId] && _this4.state.answers[quesId] === optionText) {
+            _options.push(React.createElement(
               'button',
               { type: 'button', className: 'btn btn-primary', style: answerButtonStyle, key: i, onClick: function onClick() {
                   return _this4._markAnswer(quesId, optionText);
@@ -252,7 +277,7 @@ var QuestionBox = function (_React$Component) {
               'Option ' + _this4._convertIndexToOption(i)
             ));
           } else {
-            options.push(React.createElement(
+            _options.push(React.createElement(
               'button',
               { type: 'button', className: 'btn btn-link', style: answerButtonStyle, key: i, onClick: function onClick() {
                   return _this4._markAnswer(quesId, optionText);
@@ -266,7 +291,7 @@ var QuestionBox = function (_React$Component) {
           _loop2(i);
         }
 
-        options.push(React.createElement(
+        _options.push(React.createElement(
           'button',
           { type: 'button', className: 'btn btn-link', style: answerButtonStyle, key: optionCount, onClick: function onClick() {
               return _this4._unMarkAnswer(quesId);
@@ -274,7 +299,23 @@ var QuestionBox = function (_React$Component) {
           'Clear'
         ));
 
-        return options;
+        if (this.state.isowner === 'Y' && this.state.startMode === 'edit') {
+          _options.push(React.createElement(
+            'div',
+            { key: optionCount + 1 },
+            React.createElement('input', { type: 'number', className: 'form-control form-inline', id: 'editques-option-inp', placeholder: 'Option Count', key: optionCount + 2 }),
+            React.createElement('input', { type: 'text', className: 'form-control form-inline', id: 'editques-ans-inp', placeholder: 'Correct Answer', key: optionCount + 3 }),
+            React.createElement(
+              'button',
+              { type: 'button', className: 'btn btn-primary', key: optionCount + 4, onClick: function onClick() {
+                  return _this4._editquestion(quesId);
+                } },
+              'Edit \u2192'
+            )
+          ));
+        }
+
+        return _options;
       }
     };
 
@@ -319,6 +360,7 @@ var QuestionBox = function (_React$Component) {
           } },
         'Submit \u2192'
       ));
+
       return allNavigations;
     };
 
@@ -335,13 +377,16 @@ var QuestionBox = function (_React$Component) {
         try {
           localStorage.removeItem(EXAM_SUMP_KEY + ':' + this.state.examid);
           localStorage.removeItem(EXAM_SUMP_KEY + ':' + this.state.examid + ':id');
+          this.setState(function (state) {
+            return { submitted: 'C' };
+          });
         } catch (err) {
           _logError(err);
         }
       }
     };
 
-    _this.state = { questions: props.questions, answers: {}, questionIndex: 0, withpic: props.withpic,
+    _this.state = { questions: props.questions, answers: {}, questionIndex: 0, withpic: props.withpic, isowner: props.isowner,
       imagedata: props.imagedata, submit: 'N', started: 'N', examid: props.examid, time: props.time * 60,
       duration: props.time, name: props.name, instructions: props.instructions, loading: 'N', submitted: 'N' };
     return _this;
@@ -354,7 +399,7 @@ var QuestionBox = function (_React$Component) {
 
       this._tryToRetrieve();
       this.myInterval = setInterval(function () {
-        if (_this6.state.started !== 'N') {
+        if (_this6.state.started !== 'N' && _this6.state.startMode !== 'edit') {
           var timeToGo = _this6.state.time - TIMER_INTERVAL;
           if (timeToGo < 0) {
             clearTimeout(_this6.myInterval);
@@ -372,6 +417,21 @@ var QuestionBox = function (_React$Component) {
           }
         }
       }, 1000 * TIMER_INTERVAL);
+    }
+  }, {
+    key: '_editquestion',
+    value: function _editquestion(quesId) {
+      var optionCount = $('#editques-option-inp').val();
+      var answer = $('#editques-ans-inp').val();
+      if (optionCount === '' || optionCount.replace(/[0-9]/g, '') !== '' || parseInt(optionCount) < 0 || parseInt(optionCount) > 26) {
+        alert('Enter a Valid Option Count.');
+      } else if (answer === '') {
+        alert('Enter a Valid Answer.');
+      } else if (parseInt(optionCount) > 0 && (answer.length > 1 || answer.charCodeAt(0) < 'A'.charCodeAt(0) || answer.charCodeAt(0) > 'A'.charCodeAt(0) + parseInt(optionCount) - 1)) {
+        alert('Enter a Valid MCQ Answer.');
+      } else {
+        alert('Update: ' + quesId + ' ' + optionCount + ' ' + answer);
+      }
     }
   }, {
     key: 'render',
@@ -394,7 +454,19 @@ var QuestionBox = function (_React$Component) {
           'Exam Successfully Submitted. Click ',
           React.createElement(
             'a',
-            { href: '{USER_HOME}' },
+            { href: USER_HOME },
+            'Here'
+          ),
+          ' To Go back.'
+        );
+      } else if (this.state.submitted === 'C') {
+        return React.createElement(
+          'div',
+          null,
+          'Data Successfully Cleared. Click ',
+          React.createElement(
+            'a',
+            { href: USER_HOME },
             'Here'
           ),
           ' To Go back.'
@@ -439,6 +511,16 @@ var QuestionBox = function (_React$Component) {
           React.createElement('img', { src: 'resources/images/loader.gif', alr: 'Loading' })
         );
       } else if (this.state.started === 'N') {
+        var updateButton = React.createElement('br', null);
+        if (this.state.isowner === 'Y') {
+          updateButton = React.createElement(
+            'button',
+            { type: 'button', className: 'btn btn-primary', onClick: function onClick() {
+                return _this7._startExam('edit');
+              }, style: { float: 'right', marginLeft: "5px" } },
+            'Edit \u2192'
+          );
+        }
         return React.createElement(
           'div',
           null,
@@ -473,12 +555,13 @@ var QuestionBox = function (_React$Component) {
           }),
           React.createElement('br', null),
           React.createElement('hr', null),
-          'Please Note: Once Started, timer will start and if you leave the window, you may not be able to resume again. ',
+          'Please Note: Once Started, timer will start and if you leave the window, you may not be able to resume again.',
           React.createElement('br', null),
+          updateButton,
           React.createElement(
             'button',
             { type: 'button', className: 'btn btn-primary', onClick: function onClick() {
-                return _this7._startExam();
+                return _this7._startExam('take');
               }, style: { float: 'right' } },
             'I Understand, Start Exam \u2192'
           )
@@ -506,7 +589,7 @@ var QuestionBox = function (_React$Component) {
           React.createElement('img', { src: this._getImageURL(question.image), alt: question.desc, style: questionImageStyle }),
           React.createElement('br', null),
           React.createElement('br', null),
-          this._createAnserBox(question.quesid, question.optioncount),
+          this._createAnserBox(question.quesid, question.optioncount, question.answer),
           ' ',
           React.createElement('hr', null),
           this._createNavigationBox()

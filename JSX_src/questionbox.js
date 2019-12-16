@@ -6,7 +6,7 @@ let timerWarned = false;
 class QuestionBox extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {questions:props.questions, answers:{}, questionIndex:0, withpic:props.withpic, 
+    this.state = {questions:props.questions, answers:{}, questionIndex:0, withpic:props.withpic, isowner:props.isowner,
                   imagedata:props.imagedata, submit:'N', started: 'N', examid:props.examid, time:props.time*60,
                   duration:props.time, name:props.name, instructions:props.instructions, loading:'N', submitted: 'N'};
   }
@@ -71,7 +71,7 @@ class QuestionBox extends React.Component {
 
     this._tryToRetrieve();
     this.myInterval = setInterval(() => {
-      if (this.state.started !== 'N') {
+      if (this.state.started !== 'N' && this.state.startMode !== 'edit') {
         let timeToGo = this.state.time - TIMER_INTERVAL;
         if (timeToGo < 0) {
           clearTimeout(this.myInterval);
@@ -103,7 +103,7 @@ class QuestionBox extends React.Component {
   }
 
   _saveState = function() {
-    if (this.state.started === 'N') return;
+    if (this.state.started === 'N' || this.state.submitted !== 'N' || this.state.startMode === 'edit') return;
     try {
       let dataDump = this._crateExamDump();
       // let randomValidator = _generateExamDataValidationString();
@@ -119,8 +119,8 @@ class QuestionBox extends React.Component {
     }
   }
 
-  _startExam = function() {
-    this.setState(state => ({started: 'Y', startTime: new Date()}));
+  _startExam = function(option) {
+    this.setState(state => ({started: 'Y', startTime: new Date(), startMode: option}));
     this._saveState();
   }
 
@@ -150,13 +150,16 @@ class QuestionBox extends React.Component {
         }, (error) => {
           _logError(errr);
           this.setState(state => ({submitted: 'X'}));
-        });
-      
+        }
+      );   
     }  
   }
 
   _submitExam = function () {
-    this.setState(state => ({submit: 'Y'}));
+    if (this.state.isowner === 'Y' && this.state.startMode === 'edit')
+      window.location.reload();
+    else 
+      this.setState(state => ({submit: 'Y'}));
   }
 
   _returnToQues = function (quesIndex) {
@@ -216,9 +219,39 @@ class QuestionBox extends React.Component {
     this._saveState();
   }
 
-  _createAnserBox = function (quesId, optionCount) {
+  _editquestion(quesId) {
+    let optionCount = $('#editques-option-inp').val();
+    let answer = $('#editques-ans-inp').val();
+    if (optionCount === '' || optionCount.replace(/[0-9]/g,'') !== '' || parseInt(optionCount) < 0 || parseInt(optionCount) > 26) {
+      alert('Enter a Valid Option Count.')
+    } else if (answer === '') {
+      alert('Enter a Valid Answer.')
+    } else if ((parseInt(optionCount) > 0) && (answer.length > 1 || answer.charCodeAt(0) < 'A'.charCodeAt(0) || answer.charCodeAt(0) > ('A'.charCodeAt(0) + parseInt(optionCount) - 1))) {
+      alert('Enter a Valid MCQ Answer.')
+    } else {
+      alert ('Update: ' + quesId + ' ' + optionCount + ' ' + answer);
+    }
+
+  }
+
+  _createAnserBox = function (quesId, optionCount, answer) {
     if (optionCount <= 0) {
-      return <input type="text" className="form-control" id="answer-input" value={this.state.answers[quesId]} />;
+      let options = [];
+      if (this.state.isowner === 'Y' && answer) {
+        options.push(<input type="text" className="form-control" id="answer-input" value={answer} key="1"/>);
+      } else {
+        options.push(<input type="text" className="form-control" id="answer-input" value={this.state.answers[quesId]} key="1"/>);
+      }
+      options.push(
+          <div key="2">
+            <input type="number" className="form-control form-inline" id="editques-option-inp" placeholder="Option Count" key="3" />
+            <input type="text" className="form-control form-inline" id="editques-ans-inp" placeholder="Correct Answer" key="4" />
+            <button type="button" className="btn btn-primary" key="5" onClick={() => this._editquestion(quesId)}>
+              Edit &rarr;
+            </button>
+          </div>
+        );
+      return options;
     } else {
       const answerButtonStyle = {
         paddingLeft: "10px",
@@ -231,7 +264,13 @@ class QuestionBox extends React.Component {
       let options = [];
       for (let i=0; i<optionCount; i++) {
         let optionText = this._convertIndexToOption(i);
-        if (this.state.answers[quesId] && this.state.answers[quesId]===optionText) {
+        if (this.state.isowner === 'Y' && this.state.startMode === 'edit' && answer === optionText) { 
+          options.push (
+              <button type="button" className="btn btn-success" style={answerButtonStyle} key={i}> 
+                {'Option ' + this._convertIndexToOption(i)} 
+              </button>
+            );
+        } else if (this.state.answers[quesId] && this.state.answers[quesId]===optionText) {
           options.push (
               <button type="button" className="btn btn-primary" style={answerButtonStyle} key={i} onClick={() => this._markAnswer(quesId, optionText)}> 
                 {'Option ' + this._convertIndexToOption(i)} 
@@ -251,6 +290,18 @@ class QuestionBox extends React.Component {
             Clear
           </button>
         );
+
+      if (this.state.isowner === 'Y' && this.state.startMode === 'edit') {
+        options.push(
+          <div key={optionCount+1}>
+            <input type="number" className="form-control form-inline" id="editques-option-inp" placeholder="Option Count" key={optionCount+2} />
+            <input type="text" className="form-control form-inline" id="editques-ans-inp" placeholder="Correct Answer" key={optionCount+3} />
+            <button type="button" className="btn btn-primary" key={optionCount+4} onClick={() => this._editquestion(quesId)}>
+              Edit &rarr;
+            </button>
+          </div>
+        );
+      }
 
       return options;
     }
@@ -274,6 +325,7 @@ class QuestionBox extends React.Component {
           Submit &rarr;
         </button>
       );
+    
     return allNavigations;
   }
 
@@ -296,6 +348,7 @@ class QuestionBox extends React.Component {
       try {
         localStorage.removeItem(EXAM_SUMP_KEY + ':'+ this.state.examid);
         localStorage.removeItem(EXAM_SUMP_KEY + ':'+ this.state.examid + ':id');
+        this.setState(state => ({submitted: 'C'}));
       } catch (err) {
         _logError(err);
       }
@@ -313,7 +366,9 @@ class QuestionBox extends React.Component {
     };
 
     if (this.state.submitted === 'S') {
-      return (<div>Exam Successfully Submitted. Click <a href="{USER_HOME}">Here</a> To Go back.</div>);
+      return (<div>Exam Successfully Submitted. Click <a href={USER_HOME}>Here</a> To Go back.</div>);
+    } else if (this.state.submitted === 'C') {
+      return (<div>Data Successfully Cleared. Click <a href={USER_HOME}>Here</a> To Go back.</div>);
     } else if (this.state.submitted === 'X') {
       return (
         <div>
@@ -336,6 +391,14 @@ class QuestionBox extends React.Component {
         </div>
       );
     } else if (this.state.started === 'N') {
+      let updateButton = <br />;
+      if (this.state.isowner === 'Y') {
+        updateButton = (
+          <button type="button" className="btn btn-primary" onClick={() => this._startExam('edit')} style={{float: 'right', marginLeft: "5px"}}>
+            Edit &rarr;
+          </button>
+        );
+      }
       return (
         <div>
           <br />
@@ -344,8 +407,9 @@ class QuestionBox extends React.Component {
           <b>Instructions:</b><br />
           {this.state.instructions.split('\n').map(i =><p key={i}>{i}</p>)}<br />
           <hr />
-          Please Note: Once Started, timer will start and if you leave the window, you may not be able to resume again. <br />
-          <button type="button" className="btn btn-primary" onClick={() => this._startExam()} style={{float: 'right'}}>
+          Please Note: Once Started, timer will start and if you leave the window, you may not be able to resume again.<br />
+          {updateButton}
+          <button type="button" className="btn btn-primary" onClick={() => this._startExam('take')} style={{float: 'right'}}>
             I Understand, Start Exam &rarr;
           </button>
         </div>
@@ -358,7 +422,7 @@ class QuestionBox extends React.Component {
           </p><br />
           <h5 id="question-desc">{question.desc}</h5> <br />
           <img src={this._getImageURL(question.image)} alt={question.desc} style={questionImageStyle} /><br /><br />
-          {this._createAnserBox(question.quesid, question.optioncount)} <hr />
+          {this._createAnserBox(question.quesid, question.optioncount, question.answer)} <hr />
           {this._createNavigationBox()}
         </div>
       );
